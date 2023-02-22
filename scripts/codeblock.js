@@ -1,5 +1,9 @@
 
 function addCodeBlock(main, mEvt, isPreview) {
+    const data = {
+        content: `// Say hello\nconsole.log('Hello, world!');`
+    }
+
     const block = document.createElement('div');
 
     block.classList.add('annotation');
@@ -36,7 +40,7 @@ function addCodeBlock(main, mEvt, isPreview) {
     resizeHandle.classList.add('resize-handle');
     resizeHandle.innerHTML = '<i class="bi bi-arrow-down-right"></i>';
     const snippet = document.createElement('div');
-    snippet.innerHTML = `// Say hello\nconsole.log('Hello, world!');`;
+    snippet.innerHTML = data.content;
     snippet.setAttribute('contenteditable', 'true');
 
     content.appendChild(snippet);
@@ -63,7 +67,13 @@ function addCodeBlock(main, mEvt, isPreview) {
         }
         editor.resize();
     }
-    snippet.addEventListener('keyup', fixEditorSize);
+    const saveContents = () => {
+        data.content = editor.session.getValue();
+    }
+    snippet.addEventListener('keyup', () => {
+        fixEditorSize();
+        saveContents();
+    });
     const minMenuHeight = 140;
     content.style.height = minMenuHeight + 1 + 'px';
     const fixMenuLayout = () => {
@@ -81,7 +91,7 @@ function addCodeBlock(main, mEvt, isPreview) {
     block.appendChild(menu);
     block.appendChild(content);
     main.appendChild(block);
-    block.addEventListener('mousedown', (evt)=>evt.stopPropagation());
+    block.addEventListener('pointerdown', (evt)=>evt.stopPropagation());
 
     let down = false;
     let initial = {x: block.offsetLeft, y: block.offsetTop};
@@ -89,7 +99,7 @@ function addCodeBlock(main, mEvt, isPreview) {
     
     block.style.left = mEvt.offsetX - 10 + 'px';
     block.style.top = mEvt.offsetY - 20 + 'px';
-    handle.addEventListener('mousedown', (evt) => {
+    handle.addEventListener('pointerdown', (evt) => {
         down = true;
         start = {x: evt.clientX, y: evt.clientY};
         initial = {x: block.offsetLeft, y: block.offsetTop};
@@ -97,13 +107,13 @@ function addCodeBlock(main, mEvt, isPreview) {
     let rsDown = false;
     let rsInitial = {x: content.scrollWidth, y: content.scrollHeight};
     let rsStart;
-    resizeHandle.addEventListener('mousedown', (evt) => {
+    resizeHandle.addEventListener('pointerdown', (evt) => {
         rsDown = true;
         rsStart = {x: evt.clientX, y: evt.clientY};
         rsInitial = {x: content.scrollWidth, y: content.scrollHeight};
     });
 
-    document.addEventListener('mousemove', (evt) => {
+    document.addEventListener('pointermove', (evt) => {
         if (down) {
             block.style.left = initial.x + evt.clientX - start.x + 'px';
             block.style.top = initial.y + evt.clientY - start.y + 'px';
@@ -115,10 +125,10 @@ function addCodeBlock(main, mEvt, isPreview) {
             editor.resize();
         }
     });
-    document.addEventListener('mouseup', () => {
+    document.addEventListener('pointerup', () => {
         down = false;
         rsDown = false;
     });
 
-    return block;
+    return [data, block];
 }

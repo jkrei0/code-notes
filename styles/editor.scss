@@ -9,7 +9,10 @@
     box-sizing: border-box;
     overflow: auto;
 
+    touch-action: none;
+
     #editor-canvas {
+        touch-action: none;
         box-sizing: border-box;
         overflow: hidden;
         z-index: 10;

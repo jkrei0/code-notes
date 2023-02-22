@@ -75,8 +75,7 @@ const endDrawing = () => {
     }
     drawingData.isDrawingNow = false;
 }
-
-main.addEventListener('mousedown', (mEvt) => {
+const toolDown = (mEvt) => {
     if (drawingData.activeTool === tools.PEN) {
         drawingData.lines.push({
             color: '#fff',
@@ -88,11 +87,11 @@ main.addEventListener('mousedown', (mEvt) => {
         beginDrawing();
 
     } else if (drawingData.activeTool === tools.CODE) {
-        drawingData.annotations.push(addCodeBlock(main, mEvt));
+        const [data, block] = addCodeBlock(main, mEvt);
+        drawingData.annotations.push(data);
     }
-});
-window.addEventListener('mouseup', endDrawing);
-canvas.addEventListener('pointermove', (evt) => {
+}
+const toolMove = (evt) => {
     if (!drawingData.isDrawingNow) return;
     if (!drawingData.lines[0]) return;
 
@@ -114,7 +113,7 @@ canvas.addEventListener('pointermove', (evt) => {
                 const next = line.points[p];
 
                 if (intersects(prev, next, lastMp, mp)) {
-                    console.log('WHOA', l);
+                    console.log('Erasing', l);
                     // erase the line
                     drawingData.lines.splice(l, 1);
                     break;
@@ -125,7 +124,11 @@ canvas.addEventListener('pointermove', (evt) => {
     }
 
     lastMp = mp;
-});
+}
+
+main.addEventListener('pointerdown', toolDown);
+window.addEventListener('pointerup', endDrawing);
+canvas.addEventListener('pointermove', toolMove);
 
 for (const button of document.querySelectorAll('button[data-tool]')) {
     button.addEventListener('click', () => {
