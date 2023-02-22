@@ -90,6 +90,9 @@ const toolDown = (mEvt) => {
     } else if (drawingData.activeTool === tools.CODE) {
         const [data, block] = addCodeBlock(main, mEvt);
         drawingData.annotations.push(data);
+    } else if (drawingData.activeTool === tools.TEXT) {
+        const [data, block] = addTextBlock(main, mEvt);
+        drawingData.annotations.push(data);
     }
 }
 const toolMove = (evt) => {
