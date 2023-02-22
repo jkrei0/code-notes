@@ -32,6 +32,7 @@ const tools = {
 
 const drawingData = {
     activeTool: tools.PEN,
+    currentColor: '#fff',
     isDrawingNow: false,
     lines: [],
     linesHistoryIndex: 0,
@@ -78,7 +79,7 @@ const endDrawing = () => {
 const toolDown = (mEvt) => {
     if (drawingData.activeTool === tools.PEN) {
         drawingData.lines.push({
-            color: '#fff',
+            color: drawingData.currentColor,
             points: []
         });
         beginDrawing();
@@ -158,4 +159,15 @@ for (const button of document.querySelectorAll('button[data-tool]')) {
     });
 }
 
+for (const button of document.querySelectorAll('button[data-color]')) {
+    button.style.backgroundColor = button.getAttribute('data-color');
+    button.addEventListener('click', () => {
+        drawingData.currentColor = button.getAttribute('data-color');
+        for (const ab of document.querySelectorAll('button[data-color].active')) {
+            ab.classList.remove('active');
+        }
+        button.classList.add('active');
+    });
+    
+}
 changeTool();

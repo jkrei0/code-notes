@@ -1,18 +1,42 @@
 @use 'base' as *;
 
 .titlebar {
+    display: flex;
+    flex-direction: row;
     background: $dark;
     padding: 10px 15px;
 
-    h1 {
+    h1, i {
         margin: 0 5px;
         font-family: $font-display;
         font-size: 1.5em;
 
-        i {
+        &:is(i) {
             display: inline-block;
             margin-right: 0.5em;
             color: $teal;
+        }
+    }
+
+    button[data-color] {
+        all: unset;
+        box-sizing: border-box;
+        width: 33px;
+        height: 33px;
+        border: 4px solid $dark;
+        border-radius: 50px;
+        color: transparent;
+        cursor: pointer;
+
+        &:hover {
+            border-color: $jet;
+        }
+        &.active {
+            border-color: transparent;
+        }
+
+        &:first-of-type {
+            margin-left: 30px;
         }
     }
 }
