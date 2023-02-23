@@ -26,19 +26,48 @@ const tools = {
     PEN: 1,
     CODE: 2,
     TEXT: 3,
+    HEADING: 4,
+    ERASER: 5,
     UNDO: 99,
     REDO: 98
 }
 
-const drawingData = {
+let toolData = {
     activeTool: tools.PEN,
     currentColor: '#fff',
     isDrawingNow: false,
+}
+let drawingData = {
     lines: [],
-    linesHistoryIndex: 0,
-    linesHistory: [[]],
     annotations: []
 }
+const drawingHistory = {
+    index: 0,
+    states: [],
+    pushState: () => {
+        drawingHistory.index = 0;
+        drawingHistory.states.splice(0, 0, JSON.parse(JSON.stringify(drawingData)));
+    },
+    restoreState: () => {
+        drawingData = JSON.parse(JSON.stringify(drawingHistory.states[drawingHistory.index]));
+    },
+    undo: () => {
+        drawingHistory.index += 1;
+        // bounds checking
+        if (drawingHistory.index >= drawingHistory.states.length) {
+            // over the end? Go back as to not create "empty" "slots"
+            drawingHistory.index -= 1;
+            return;
+        }
+        drawingHistory.restoreState();
+    },
+    redo: () => {
+        drawingHistory.index -= 1;
+        // bounds checking (stop, don't wrap)
+        if (drawingHistory.index < 0) drawingHistory.index = 0;
+        drawingHistory.restoreState();
+    }
+};
 
 const draw = () => {
     requestAnimationFrame(draw);
@@ -56,8 +85,13 @@ draw();
 let lastMp;
 const changeTool = () => {
     lastMp = undefined;
-    if (drawingData.activeTool === tools.PEN
-        || drawingData.activeTool === tools.ERASER) {
+    const currentToolString = Object.keys(tools).find(key => tools[key] === toolData.activeTool);
+    if (currentToolString === undefined) {
+        throw 'Unknown tool';
+    }
+    main.setAttribute('data-active-tool', currentToolString);
+    if (toolData.activeTool === tools.PEN
+        || toolData.activeTool === tools.ERASER) {
         canvas.style.pointerEvents = 'all';
     } else {
         canvas.style.pointerEvents = '';
@@ -65,38 +99,43 @@ const changeTool = () => {
 }
 
 const beginDrawing = () => {
-    drawingData.isDrawingNow = true;
-    drawingData.linesHistoryIndex = 0;
+    main.classList.add('drawing');
+    if (drawingHistory.index !== 0) {
+        drawingHistory.pushState();
+    }
+    toolData.isDrawingNow = true;
 }
 const endDrawing = () => {
-    if (drawingData.isDrawingNow) {
-        drawingData.linesHistory.splice(0, 0,
-            JSON.parse(JSON.stringify(drawingData.lines)) // clone
-        );
+    main.classList.remove('drawing');
+    if (toolData.isDrawingNow) {
+        drawingHistory.pushState();
     }
-    drawingData.isDrawingNow = false;
+    toolData.isDrawingNow = false;
 }
 const toolDown = (mEvt) => {
-    if (drawingData.activeTool === tools.PEN) {
+    if (toolData.activeTool === tools.PEN) {
         drawingData.lines.push({
-            color: drawingData.currentColor,
+            color: toolData.currentColor,
             points: []
         });
         beginDrawing();
 
-    } else if (drawingData.activeTool === tools.ERASER) {
+    } else if (toolData.activeTool === tools.ERASER) {
         beginDrawing();
 
-    } else if (drawingData.activeTool === tools.CODE) {
+    } else if (toolData.activeTool === tools.CODE) {
         const [data, block] = addCodeBlock(main, mEvt);
         drawingData.annotations.push(data);
-    } else if (drawingData.activeTool === tools.TEXT) {
+    } else if (toolData.activeTool === tools.TEXT) {
         const [data, block] = addTextBlock(main, mEvt);
+        drawingData.annotations.push(data);
+    }  else if (toolData.activeTool === tools.HEADING) {
+        const [data, block] = addTextBlock(main, mEvt, true);
         drawingData.annotations.push(data);
     }
 }
 const toolMove = (evt) => {
-    if (!drawingData.isDrawingNow) return;
+    if (!toolData.isDrawingNow) return;
     if (!drawingData.lines[0]) return;
 
     var rect = canvas.getBoundingClientRect();
@@ -105,11 +144,11 @@ const toolMove = (evt) => {
         y: evt.clientY - rect.top
     };
 
-    if (drawingData.activeTool === tools.PEN) {
+    if (toolData.activeTool === tools.PEN) {
         const i = drawingData.lines.length - 1;
         drawingData.lines[i].points.push(mp);
 
-    } else if (drawingData.activeTool === tools.ERASER && lastMp) {
+    } else if (toolData.activeTool === tools.ERASER && lastMp) {
         for (let l = 0; l < drawingData.lines.length; l++) {
             const line = drawingData.lines[l];
             for (let p = 1; p < line.points.length; p++) {
@@ -138,18 +177,11 @@ for (const button of document.querySelectorAll('button[data-tool]')) {
     button.addEventListener('click', () => {
         const tool = tools[button.getAttribute('data-tool')];
 
-        if (tool === tools.UNDO || tool === tools.REDO) {
-            drawingData.linesHistoryIndex += 1;
-            if (tool === tools.REDO) drawingData.linesHistoryIndex -= 2;
-            // bounds checking
-            if (drawingData.linesHistoryIndex < 0) drawingData.linesHistoryIndex = 0;
-            if (drawingData.linesHistoryIndex >= drawingData.linesHistory.length) {
-                // over the end? Go back as to not create "empty" "slots"
-                drawingData.linesHistoryIndex -= 1;
-                return;
-            }
-
-            drawingData.lines = JSON.parse(JSON.stringify(drawingData.linesHistory[drawingData.linesHistoryIndex])); // clone
+        if (tool === tools.UNDO) {
+            drawingHistory.undo();
+            return;
+        } else if (tool === tools.REDO) {
+            drawingHistory.redo();
             return;
         }
 
@@ -157,7 +189,7 @@ for (const button of document.querySelectorAll('button[data-tool]')) {
             ab.classList.remove('active');
         }
         button.classList.add('active');
-        drawingData.activeTool = tool;
+        toolData.activeTool = tool;
         changeTool();
     });
 }
@@ -165,7 +197,7 @@ for (const button of document.querySelectorAll('button[data-tool]')) {
 for (const button of document.querySelectorAll('button[data-color]')) {
     button.style.backgroundColor = button.getAttribute('data-color');
     button.addEventListener('click', () => {
-        drawingData.currentColor = button.getAttribute('data-color');
+        toolData.currentColor = button.getAttribute('data-color');
         for (const ab of document.querySelectorAll('button[data-color].active')) {
             ab.classList.remove('active');
         }

@@ -7,7 +7,7 @@
     display: flex;
     align-items: stretch;
     box-sizing: border-box;
-    overflow: auto;
+    overflow: hidden;
 
     touch-action: none;
 
@@ -15,7 +15,7 @@
         touch-action: none;
         box-sizing: border-box;
         overflow: hidden;
-        z-index: 10;
+        z-index: 8;
         pointer-events: none;
     }
 
@@ -26,8 +26,16 @@
 
         z-index: 2;
         &:focus-within {
+            box-shadow: 0 0 5px 0 $dark;
+        }
+        &:hover, &:focus-within {
             z-index: 3;
-            box-shadow: 0 0 5px -1px $dark;
+            &.text {
+                z-index: 12;
+            }
+            .content .textbox {
+                border-color: #444;
+            }
         }
 
         padding: 0;
@@ -38,8 +46,8 @@
             align-items: stretch;
             position: relative;
             padding: 0;
-            background: #282b2e;
-            width: 310px;
+            margin: 0;
+            background: transparent;
             min-height: 50px;
             min-width: 150px;
             & > * {
@@ -52,7 +60,7 @@
                 bottom: 0;
                 right: 0;
                 background: $dark;
-                font-size: 1em;
+                font-size: 16px;
                 cursor: se-resize;
                 z-index: 6;
             }
@@ -60,16 +68,21 @@
                 font-family: sans-serif;
                 font-size: 1em;
                 padding: 10px;
-                background: #333;
-                border: 2px solid transparent;
+                height: 100%;
+                overflow: hidden;
                 &:focus {
                     outline: none;
-                    border-color: #444;
+                    background: #3338;
                 }
             }
         }
-        &:not(:hover) .menu {
-            opacity: 0.1;
+        &:not(:hover):not(:focus-within) .menu > *,
+        &:not(:hover):not(:focus-within) .content .resize-handle {
+            transition: opacity 0.2s;
+        }
+        &:not(:is(:focus-within, :hover, .focused)) .menu > *:not(.run),
+        &:not(:is(:focus-within, :hover, .focused)) .resize-handle {
+            opacity: 0;
         }
         .menu {
             display: flex;
@@ -89,7 +102,7 @@
             }
 
             .handle {
-                background: transparent;
+                background: $dark;
                 cursor: grab;
                 flex-grow: 1;
             }
