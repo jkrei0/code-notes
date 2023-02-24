@@ -28,6 +28,7 @@ const tools = {
     TEXT: 3,
     HEADING: 4,
     ERASER: 5,
+    CURSOR: 6,
     UNDO: 99,
     REDO: 98
 }
@@ -49,7 +50,14 @@ const drawingHistory = {
         drawingHistory.states.splice(0, 0, JSON.parse(JSON.stringify(drawingData)));
     },
     restoreState: () => {
+        for (const aEl of main.querySelectorAll('.annotation')) {
+            aEl.parentNode.removeChild(aEl);
+        }
         drawingData = JSON.parse(JSON.stringify(drawingHistory.states[drawingHistory.index]));
+        for (const aData of drawingData.annotations) {
+            if (!aData.active) continue;
+            addAnnotationBlock(main, aData); // objects are pass-by-reference, so it doesn't have to be saved
+        }
     },
     undo: () => {
         drawingHistory.index += 1;
@@ -68,6 +76,8 @@ const drawingHistory = {
         drawingHistory.restoreState();
     }
 };
+drawingHistory.pushState();
+main._cnPushHistoryState = drawingHistory.pushState;
 
 const draw = () => {
     requestAnimationFrame(draw);
@@ -126,12 +136,17 @@ const toolDown = (mEvt) => {
     } else if (toolData.activeTool === tools.CODE) {
         const [data, block] = addCodeBlock(main, mEvt);
         drawingData.annotations.push(data);
+        drawingHistory.pushState();
+
     } else if (toolData.activeTool === tools.TEXT) {
-        const [data, block] = addTextBlock(main, mEvt);
+        const [data, block] = addTextBlock(main, mEvt, {color: toolData.currentColor});
         drawingData.annotations.push(data);
+        drawingHistory.pushState();
+
     }  else if (toolData.activeTool === tools.HEADING) {
-        const [data, block] = addTextBlock(main, mEvt, true);
+        const [data, block] = addTextBlock(main, mEvt, {isHeading: true, color: toolData.currentColor});
         drawingData.annotations.push(data);
+        drawingHistory.pushState();
     }
 }
 const toolMove = (evt) => {

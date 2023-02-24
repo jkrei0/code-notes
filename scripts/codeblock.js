@@ -1,7 +1,21 @@
+function addAnnotationBlock(main, data) {
+    if (data.type === 'code') {
+        return addCodeBlock(main, data);
 
-function addCodeBlock(main, mEvt, isPreview) {
-    const data = {
-        content: `// Say hello\nconsole.log('Hello, world!');`
+    } else if (data.type === 'text') {
+        return addTextBlock(main, data);
+    }
+}
+
+function addCodeBlock(main, mEvt, options = {}) {
+    const data = mEvt._cnIsAnnotation ? mEvt : {
+        _cnIsAnnotation: true,
+        active: true,
+        type: 'code',
+        is: options.isPreview ? 'preview' : 'code',
+        content: `// Say hello\nconsole.log('Hello, world!');`,
+        position: {x: mEvt.offsetX - 10, y: mEvt.offsetY - 20},
+        size: {x: 400, y: 140}
     }
 
     const block = document.createElement('div');
@@ -26,6 +40,7 @@ function addCodeBlock(main, mEvt, isPreview) {
     deletebutton.innerHTML = '<i class="bi bi-trash"></i>';
     deletebutton.addEventListener('click', () => {
         block.parentElement.removeChild(block);
+        data.active = false;
     });
 
     menu.appendChild(runbutton);
@@ -56,6 +71,9 @@ function addCodeBlock(main, mEvt, isPreview) {
 
     let isManuallyResized = false;
     const fixEditorSize = () => {
+        const box = block.getBoundingClientRect();
+        data.size.y = box.height;
+        data.size.x = box.width;
         if (isManuallyResized) return;
         const scrollHeight = snippet.querySelector('.ace_scrollbar-v').scrollHeight;
         const scrollWidth = snippet.querySelector('.ace_scrollbar-h').scrollWidth;
@@ -69,14 +87,19 @@ function addCodeBlock(main, mEvt, isPreview) {
         editor.resize();
     }
     const saveContents = () => {
-        data.content = editor.session.getValue();
+        if (data.content === editor.getValue()) return;
+        data.content = editor.getValue();
+        main._cnPushHistoryState();
     }
     snippet.addEventListener('keyup', () => {
         fixEditorSize();
+    });
+    snippet.addEventListener('focusout', () => {
         saveContents();
     });
     const minMenuHeight = 140;
-    content.style.height = minMenuHeight + 1 + 'px';
+    content.style.width = data.size.x + 'px';
+    content.style.height = data.size.y + 'px';
     const fixMenuLayout = () => {
         if (content.scrollHeight < minMenuHeight) {
             block.style.flexDirection = 'column';
@@ -98,8 +121,8 @@ function addCodeBlock(main, mEvt, isPreview) {
     let initial = {x: block.offsetLeft, y: block.offsetTop};
     let start;
     
-    block.style.left = mEvt.offsetX - 10 + 'px';
-    block.style.top = mEvt.offsetY - 20 + 'px';
+    block.style.left = data.position.x + 'px';
+    block.style.top = data.position.y + 'px';
     handle.addEventListener('pointerdown', (evt) => {
         down = true;
         start = {x: evt.clientX, y: evt.clientY};
@@ -118,6 +141,8 @@ function addCodeBlock(main, mEvt, isPreview) {
         if (down) {
             block.style.left = initial.x + evt.clientX - start.x + 'px';
             block.style.top = initial.y + evt.clientY - start.y + 'px';
+            data.position.x = block.style.left.replace('px', '')*1;
+            data.position.y = block.style.top.replace('px', '')*1;
         } else if (rsDown) {
             isManuallyResized = true;
             content.style.width = rsInitial.x + evt.clientX - rsStart.x + 'px';
@@ -134,13 +159,16 @@ function addCodeBlock(main, mEvt, isPreview) {
     return [data, block];
 }
 
-function addTextBlock(main, mEvt, isHeading) {
-    const data = {
+function addTextBlock(main, mEvt, options = {}) {
+    const data = mEvt._cnIsAnnotation ? mEvt : {
+        _cnIsAnnotation: true,
+        active: true,
         type: 'text',
-        is: isHeading ? 'heading' : 'text',
+        is: options.isHeading ? 'heading' : 'text',
         content: `Text`,
+        color: options.color || '#fff',
         position: {x: mEvt.offsetX - 10, y: mEvt.offsetY - 20},
-        size: {x: 300, y: isHeading ? 65 : 140}
+        size: {x: 300, y: options.isHeading ? 65 : 140}
     }
 
     const block = document.createElement('div');
@@ -159,6 +187,7 @@ function addTextBlock(main, mEvt, isHeading) {
     deletebutton.innerHTML = '<i class="bi bi-trash"></i>';
     deletebutton.addEventListener('click', () => {
         block.parentElement.removeChild(block);
+        data.active = false;
     });
 
     menu.appendChild(handle);
@@ -175,6 +204,7 @@ function addTextBlock(main, mEvt, isHeading) {
     snippet.innerHTML = data.content;
     snippet.setAttribute('contenteditable', 'true');
     snippet.classList.add('textbox');
+    snippet.style.color = data.color;
 
     content.appendChild(snippet);
     content.appendChild(resizeHandle);
@@ -194,11 +224,15 @@ function addTextBlock(main, mEvt, isHeading) {
         data.size.y = newbox.height;
     }
     const saveContents = () => {
+        if (snippet.innerHTML === data.content) return;
         data.content = snippet.innerHTML;
+        main._cnPushHistoryState();
     }
     snippet.addEventListener('keyup', () => {
-        saveContents();
         fixEditorSize();
+    });
+    snippet.addEventListener('focusout', () => {
+        saveContents();
     });
     const minMenuHeight = data.is === 'heading' ? 65 : 140;
     content.style.width = data.size.x + 'px';
@@ -245,8 +279,8 @@ function addTextBlock(main, mEvt, isHeading) {
         if (down) {
             block.style.left = initial.x + evt.clientX - start.x + 'px';
             block.style.top = initial.y + evt.clientY - start.y + 'px';
-            data.position.x = block.style.left;
-            data.position.y = block.style.top;
+            data.position.x = block.style.left.replace('px', '')*1;
+            data.position.y = block.style.top.replace('px', '')*1;
         } else if (rsDown) {
             isManuallyResized = true;
             content.style.width = rsInitial.x + evt.clientX - rsStart.x + 'px';
