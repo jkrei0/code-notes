@@ -13,9 +13,11 @@ function addCodeBlock(main, mEvt, options = {}) {
         active: true,
         type: 'code',
         is: options.isPreview ? 'preview' : 'code',
-        content: `// Say hello\nconsole.log('Hello, world!');`,
+        content: options.isPreview ? `/* Console output */`
+            : `// Say hello\nconsole.log('Hello, world!');`,
         position: {x: mEvt.offsetX - 10, y: mEvt.offsetY - 20},
-        size: {x: 400, y: 140}
+        size: {x: 400, y: 140},
+        children: []
     }
 
     const block = document.createElement('div');
@@ -32,6 +34,21 @@ function addCodeBlock(main, mEvt, options = {}) {
     const runbutton = document.createElement('button');
     runbutton.classList.add('run');
     runbutton.innerHTML = '<i class="bi bi-play-fill"></i>';
+    const createChild = (data) => {
+        addCodeBlock(child);
+    }
+    runbutton.addEventListener('click', () => {
+        if (!data.children[0]) {
+            const [pd, pb] = addCodeBlock(main, {
+                offsetX: data.position.x + 20,
+                offsetY: data.position.y + data.size.y
+            }, {
+                isPreview: true
+            });
+            data.children.push(pd);
+            main.appendChild(pb);
+        }
+    });
     const resetbutton = document.createElement('button');
     resetbutton.classList.add('reset');
     resetbutton.innerHTML = '<i class="bi bi-arrow-counterclockwise"></i>';
@@ -63,7 +80,11 @@ function addCodeBlock(main, mEvt, options = {}) {
     content.appendChild(resizeHandle);
 
     const editor = ace.edit(snippet);
-    editor.setTheme("ace/theme/gruvbox");
+    if (data.is === 'preview') {
+        editor.setTheme("ace/theme/textmate");
+    } else {
+        editor.setTheme("ace/theme/gruvbox");
+    }
     editor.session.setMode("ace/mode/javascript");
     editor.setOptions({
         fontSize: "16px"
@@ -116,6 +137,10 @@ function addCodeBlock(main, mEvt, options = {}) {
     block.appendChild(content);
     main.appendChild(block);
     block.addEventListener('pointerdown', (evt)=>evt.stopPropagation());
+
+    for (const child of data.children) {
+        createChild(child);
+    }
 
     let down = false;
     let initial = {x: block.offsetLeft, y: block.offsetTop};
