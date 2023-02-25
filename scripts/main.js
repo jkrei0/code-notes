@@ -3,9 +3,9 @@ const main = document.querySelector('.editor-main');
 const canvas = document.querySelector('#editor-canvas');
 const ctx = canvas.getContext("2d");
 
-const drawLine = (x, y, x2, y2, color = '#fff', weight = 2) => {
+const drawLine = (x, y, x2, y2, color = '#fff', weight = 0.5) => {
     ctx.strokeStyle = color;
-    ctx.lineWidth = weight;
+    ctx.lineWidth = 4*weight;
     ctx.beginPath();
     ctx.moveTo(x, y);
     ctx.lineTo(x2, y2);
@@ -86,7 +86,7 @@ const draw = () => {
         for (let p = 1; p < line.points.length; p++) {
             const prev = line.points[p-1];
             const next = line.points[p];
-            drawLine(prev.x, prev.y, next.x, next.y, line.color);
+            drawLine(prev.x, prev.y, next.x, next.y, line.color, next.pressure);
         }
     }
 }
@@ -156,7 +156,8 @@ const toolMove = (evt) => {
     var rect = canvas.getBoundingClientRect();
     const mp = {
         x: evt.clientX - rect.left,
-        y: evt.clientY - rect.top
+        y: evt.clientY - rect.top,
+        pressure: evt.pressure,
     };
 
     if (toolData.activeTool === tools.PEN) {
